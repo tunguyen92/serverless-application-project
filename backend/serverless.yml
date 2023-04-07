@@ -31,17 +31,18 @@ provider:
     SIGNED_URL_EXPIRATION: 300
     PROJECT_NAME: serverless-todo-app
     INDEX_NAME: ${self:provider.environment.TODOS_CREATED_AT_INDEX}
-  logs:
-    # Enable API Gateway logs
-    restApi: true
 
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action:
-            - xray:PutTelemetryRecords
-          Resource: '*'
+  # logs:
+  #   # Enable API Gateway logs
+  #   restApi: true
+
+  # iam:
+  #   role:
+  #     statements:
+  #       - Effect: Allow
+  #         Action:
+  #           - xray:PutTelemetryRecords
+  #         Resource: '*'
 
 custom:
   documentation:
