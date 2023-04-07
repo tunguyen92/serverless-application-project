@@ -17,7 +17,7 @@ export class TodosAccess {
     private readonly todosIndex = process.env.INDEX_NAME
   ) {}
 
-  async getAllTodo(userId: string): Promise<TodoItem[]> {
+  async getAllTodos(userId: string): Promise<TodoItem[]> {
     logger.info('Getting all todo')
 
     const params = {
