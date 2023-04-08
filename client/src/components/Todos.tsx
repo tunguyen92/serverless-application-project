@@ -11,12 +11,21 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  Table,
+  Pagination
 } from 'semantic-ui-react'
 
-import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
+import {
+  createTodo,
+  deleteTodo,
+  getTodos,
+  getTodosWithPagination,
+  patchTodo
+} from '../api/todos-api'
 import Auth from '../auth/Auth'
 import { Todo } from '../types/Todo'
+import { limitPagination } from '../config'
 
 interface TodosProps {
   auth: Auth
@@ -25,6 +34,8 @@ interface TodosProps {
 
 interface TodosState {
   todos: Todo[]
+  todosPagination: Todo[]
+  nextKey: string
   newTodoName: string
   loadingTodos: boolean
 }
@@ -32,6 +43,8 @@ interface TodosState {
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
   state: TodosState = {
     todos: [],
+    todosPagination: [],
+    nextKey: '',
     newTodoName: '',
     loadingTodos: true
   }
@@ -53,8 +66,11 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       })
       this.setState({
         todos: [...this.state.todos, newTodo],
+        todosPagination: [...this.state.todosPagination, newTodo],
         newTodoName: ''
       })
+
+      alert('Todo creation succeed')
     } catch {
       alert('Todo creation failed')
     }
@@ -64,7 +80,9 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     try {
       await deleteTodo(this.props.auth.getIdToken(), todoId)
       this.setState({
-        todos: this.state.todos.filter((todo) => todo.todoId !== todoId)
+        todosPagination: this.state.todosPagination.filter(
+          (todo) => todo.todoId !== todoId
+        )
       })
     } catch {
       alert('Todo deletion failed')
@@ -73,14 +91,14 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
   onTodoCheck = async (pos: number) => {
     try {
-      const todo = this.state.todos[pos]
+      const todo = this.state.todosPagination[pos]
       await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
         name: todo.name,
         dueDate: todo.dueDate,
         done: !todo.done
       })
       this.setState({
-        todos: update(this.state.todos, {
+        todosPagination: update(this.state.todosPagination, {
           [pos]: { done: { $set: !todo.done } }
         })
       })
@@ -89,11 +107,35 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     }
   }
 
+  onTodoPagination = async () => {
+    try {
+      const todosAnotherPagination = await getTodosWithPagination(
+        this.props.auth.getIdToken(),
+        this.state.nextKey
+      )
+      const { items, nextKey } = todosAnotherPagination
+      this.setState({
+        todosPagination: items,
+        nextKey,
+        loadingTodos: false
+      })
+    } catch (error) {
+      alert('Failed to fetch todos pagination')
+    }
+  }
+
   async componentDidMount() {
     try {
       const todos = await getTodos(this.props.auth.getIdToken())
+      const todosWithPagination = await getTodosWithPagination(
+        this.props.auth.getIdToken(),
+        null
+      )
+      const { items, nextKey } = todosWithPagination
       this.setState({
         todos,
+        todosPagination: items,
+        nextKey,
         loadingTodos: false
       })
     } catch (e) {
@@ -157,52 +199,86 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   renderTodosList() {
+    const numberOfTodos = this.state.todos.length
+
     return (
-      <Grid padded>
-        {this.state.todos.length > 0 &&
-          this.state.todos.map((todo, pos) => {
-            return (
-              <Grid.Row key={todo.todoId}>
-                <Grid.Column width={1} verticalAlign="middle">
-                  <Checkbox
-                    onChange={() => this.onTodoCheck(pos)}
-                    checked={todo.done}
-                  />
-                </Grid.Column>
-                <Grid.Column width={10} verticalAlign="middle">
-                  {todo.name}
-                </Grid.Column>
-                <Grid.Column width={3} floated="right">
-                  {todo.dueDate}
-                </Grid.Column>
-                <Grid.Column width={1} floated="right">
-                  <Button
-                    icon
-                    color="blue"
-                    onClick={() => this.onEditButtonClick(todo.todoId)}
-                  >
-                    <Icon name="pencil" />
-                  </Button>
-                </Grid.Column>
-                <Grid.Column width={1} floated="right">
-                  <Button
-                    icon
-                    color="red"
-                    onClick={() => this.onTodoDelete(todo.todoId)}
-                  >
-                    <Icon name="delete" />
-                  </Button>
-                </Grid.Column>
-                {todo.attachmentUrl && (
-                  <Image src={todo.attachmentUrl} size="small" wrapped />
-                )}
-                <Grid.Column width={16}>
-                  <Divider />
-                </Grid.Column>
-              </Grid.Row>
-            )
-          })}
-      </Grid>
+      <Table compact celled>
+        <Table.Header>
+          <Table.Row>
+            <Table.HeaderCell textAlign="center">Completed</Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">Image</Table.HeaderCell>
+            <Table.HeaderCell>Todo Name</Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">Due Date</Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">Edit</Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">Delete</Table.HeaderCell>
+          </Table.Row>
+        </Table.Header>
+
+        <Table.Body>
+          {this.state.todosPagination.length > 0 &&
+            this.state.todosPagination.map((todo, pos) => {
+              return (
+                <Table.Row key={todo.createdAt}>
+                  <Table.Cell collapsing textAlign="center">
+                    <Checkbox
+                      slider
+                      onChange={() => this.onTodoCheck(pos)}
+                      checked={todo.done}
+                    />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Image
+                      src={todo.attachmentUrl}
+                      size="tiny"
+                      style={{ margin: 'auto' }}
+                    />
+                  </Table.Cell>
+                  <Table.Cell>{todo.name}</Table.Cell>
+                  <Table.Cell textAlign="center">{todo.dueDate}</Table.Cell>
+                  <Table.Cell textAlign="center">
+                    <Button
+                      icon
+                      color="blue"
+                      onClick={() => this.onEditButtonClick(todo.todoId)}
+                    >
+                      <Icon name="pencil" />
+                    </Button>
+                  </Table.Cell>
+                  <Table.Cell textAlign="center">
+                    <Button
+                      icon
+                      color="red"
+                      onClick={() => this.onTodoDelete(todo.todoId)}
+                    >
+                      <Icon name="delete" />
+                    </Button>
+                  </Table.Cell>
+                </Table.Row>
+              )
+            })}
+        </Table.Body>
+
+        <Table.Footer fullWidth>
+          <Table.Row>
+            <Table.HeaderCell textAlign="center"> Pagination </Table.HeaderCell>
+            <Table.HeaderCell colSpan="4">
+              <Pagination
+                floated="right"
+                defaultActivePage={1}
+                totalPages={numberOfTodos / limitPagination}
+                firstItem={null}
+                lastItem={null}
+                pageItem={null}
+                onPageChange={this.onTodoPagination}
+              />
+            </Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">
+              <p>Todos: {numberOfTodos}</p>
+              <p>Total page: {Math.round(numberOfTodos / limitPagination)}</p>
+            </Table.HeaderCell>
+          </Table.Row>
+        </Table.Footer>
+      </Table>
     )
   }
 
