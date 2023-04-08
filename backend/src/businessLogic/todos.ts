@@ -67,3 +67,13 @@ export async function createAttachmentPresignedUrl(
   logger.info('Create attachment function called')
   return attachmentUtils.getUploadUrl(todoId)
 }
+
+// Pagination todo function
+export async function getTodosWithPagination(
+  userId: string,
+  nextKey: JSON,
+  limit: number
+) {
+  logger.info('Pagination todo function called')
+  return await todosAccess.getTodoItemWithPagination(userId, nextKey, limit)
+}
