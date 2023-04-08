@@ -80,10 +80,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     try {
       await deleteTodo(this.props.auth.getIdToken(), todoId)
       this.setState({
+        todos: this.state.todos.filter((todo) => todo.todoId !== todoId),
         todosPagination: this.state.todosPagination.filter(
           (todo) => todo.todoId !== todoId
         )
       })
+      alert('Todo deletion succeed')
     } catch {
       alert('Todo deletion failed')
     }
@@ -260,7 +262,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
         <Table.Footer fullWidth>
           <Table.Row>
-            <Table.HeaderCell textAlign="center"> Pagination </Table.HeaderCell>
+            <Table.HeaderCell textAlign="center">
+              <p>Pagination</p>
+              <p>{limitPagination}items/page</p>
+            </Table.HeaderCell>
             <Table.HeaderCell colSpan="4">
               <Pagination
                 floated="right"
@@ -273,8 +278,8 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
               />
             </Table.HeaderCell>
             <Table.HeaderCell textAlign="center">
-              <p>Todos: {numberOfTodos}</p>
-              <p>Total page: {Math.round(numberOfTodos / limitPagination)}</p>
+              <p>Total todos: {numberOfTodos}</p>
+              <p>Total pages: {Math.round(numberOfTodos / limitPagination)}</p>
             </Table.HeaderCell>
           </Table.Row>
         </Table.Footer>
