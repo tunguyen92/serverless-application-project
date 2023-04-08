@@ -9,3 +9,5 @@ export const authConfig = {
   clientId: 'idtI3Hmh3rj3jHxFTwlt75nnnyFNh5SY', // Auth0 client id
   callbackUrl: 'http://localhost:3000/callback'
 }
+
+export const limitPagination = 2

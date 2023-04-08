@@ -112,4 +112,24 @@ export class TodosAccess {
 
     await this.docClient.update(params).promise()
   }
+
+  async getTodoItemWithPagination(
+    userId: string,
+    nextKey: JSON,
+    limit: number
+  ) {
+    logger.info(`Getting all Todo items with pagination`)
+
+    const params = {
+      TableName: this.todosTable,
+      Limit: limit,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId
+      },
+      ExclusiveStartKey: nextKey,
+      ScanIndexForward: false
+    }
+    return await this.docClient.query(params).promise()
+  }
 }
