@@ -8,13 +8,15 @@ const AWSXRay = require('aws-xray-sdk')
 
 const XAWS = AWSXRay.captureAWS(AWS)
 const logger = createLogger('TodosAccess')
+const s3BucketName = process.env.ATTACHMENT_S3_BUCKET
 
 // TODO: Implement the dataLayer logic
 export class TodosAccess {
   constructor(
     private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
     private readonly todosTable = process.env.TODOS_TABLE,
-    private readonly todosIndex = process.env.INDEX_NAME
+    private readonly todosIndex = process.env.INDEX_NAME,
+    private readonly bucketName = s3BucketName
   ) {}
 
   async getAllTodos(userId: string): Promise<TodoItem[]> {
@@ -91,23 +93,21 @@ export class TodosAccess {
     return todoId as string
   }
 
-  async updateTodoAttachmentUrl(
-    todoId: string,
-    userId: string,
-    attachmentUrl: string
-  ): Promise<void> {
+  async updateTodoAttachmentUrl(userId: string, todoId: string) {
     logger.info('Updating todo attachment url')
+    const s3AttachmentUrl = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
 
     const params = {
       TableName: this.todosTable,
       Key: {
-        todoId,
-        userId
+        userId,
+        todoId
       },
       UpdateExpression: 'set attachmentUrl = :attachmentUrl',
       ExpressionAttributeValues: {
-        ':attachmentUrl': attachmentUrl
-      }
+        ':attachmentUrl': s3AttachmentUrl
+      },
+      ReturnValues: 'UPDATED_NEW'
     }
 
     await this.docClient.update(params).promise()

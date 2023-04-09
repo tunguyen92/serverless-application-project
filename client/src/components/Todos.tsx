@@ -26,6 +26,7 @@ import {
 import Auth from '../auth/Auth'
 import { Todo } from '../types/Todo'
 import { limitPagination } from '../config'
+import noImage from '../assets/no-image.jpg'
 
 interface TodosProps {
   auth: Auth
@@ -230,7 +231,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                   </Table.Cell>
                   <Table.Cell>
                     <Image
-                      src={todo.attachmentUrl}
+                      src={todo.attachmentUrl ? todo.attachmentUrl : noImage}
                       size="tiny"
                       style={{ margin: 'auto' }}
                     />
@@ -264,7 +265,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
           <Table.Row>
             <Table.HeaderCell textAlign="center">
               <p>Pagination</p>
-              <p>{limitPagination}items/page</p>
+              <p>{limitPagination}tasks/page</p>
             </Table.HeaderCell>
             <Table.HeaderCell colSpan="4">
               <Pagination
